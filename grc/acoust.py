@@ -75,6 +75,9 @@ class Packet:
     self._payload = p.ljust(22, '0')
     self.sethash()
 
+  def __unicode__(self):
+    print self.source + ' ' + self.dest + ' ' + self.payload + ' ' + self.hashid
+
 
 
 
@@ -221,5 +224,6 @@ class PacketPusher:
   def applicationOut(self, inf):
     outputfile.write(Packet.decode(inf))
 
-pp = PacketPusher(Acoust(13000), PacketMaker(), "/home/nathan/inacoust", "/home/nathan/outacoust")
-pp.run()
+if __name__ == "__main__":
+  pp = PacketPusher(Acoust(13000), PacketMaker(), "/home/nathan/inacoust", "/home/nathan/outacoust")
+  pp.run()
