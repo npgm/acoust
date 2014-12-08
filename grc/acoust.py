@@ -8,15 +8,19 @@ import select
 from uuid import getnode as get_mac
 import base64
 import hashlib
+import AcoustAppData_pb2 as apd
+from datetime import datetime
 
-class Packet:
+class Packet(object):
   packetSize = 32
   payloadSize = 22
 
   @staticmethod
   def generatehash(source, dest, size, payload): 
-    md5bytes=hashlib.md5(self.source + self.dest + chr(self.size) + self.payload).digest()
+    md5bytes=hashlib.md5(source + dest + str(unichr(size)) + payload + datetime.now()).digest()
     return base64.urlsafe_b64encode(md5bytes)[:5]
+  def encode(self):
+    return self.source + self.destination + self.hashid + str(unichr(len(self.payload))) + self.payload.ljust(22, '0')
 
   @staticmethod
   def decode(packet):
@@ -27,56 +31,30 @@ class Packet:
     hashid = packet[4:9]
     size = ord(packet[9:10])
     if size > 22:
+      print size
       return None
     payload = packet[10:10+size]
 
     if hashid != Packet.generatehash(source, dest, size, payload):
+      print hashid
       return None
     return Packet(source, dest, payload)
 
+
   def __init__(self, source, destination, payload):
     self.source = source
-    self.dest = destination
+    self.destination = destination
     self.payload = payload
-    self.sethash()
   
   @property 
   def hashid(self):
+    self.sethash()
     return self._hash
   def sethash(self):
-    self._hash = Packet.generatehash(self.source, self.destination, self.size, self.payload)
-
-  @property
-  def size(self):
-    return self._size 
-
-  @property 
-  def source(self):
-    return self._address 
-  @source.setter
-  def source(self, s):
-    self._source = a
-    self.sethash()
-
-  @property 
-  def destination(self):
-    return self._destination 
-  @destination.setter
-  def destination(self, d):
-    self._destination = d
-    self.sethash()
-
-  @property 
-  def payload(self):
-    return self._payload
-  @payload.setter
-  def payload(self, p):
-    self._size = min(len(p), 22)
-    self._payload = p.ljust(22, '0')
-    self.sethash()
+    self._hash = Packet.generatehash(self.source, self.destination, len(self.payload), self.payload)
 
   def __unicode__(self):
-    print self.source + ' ' + self.dest + ' ' + self.payload + ' ' + self.hashid
+    print self.source + ' ' + self.destination  + ' ' + self.payload + ' ' + self.hashid
 
 
 
