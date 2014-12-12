@@ -166,43 +166,10 @@ class Acoust:
           print "I heard the value - " + "want: {}, heard: {}".format(out, heard)
           return True
 
-  def readraw(self):
+  def read_raw(self):
     heard = self._r.read(self._frameLength)
     return heard
   
-class PacketPusher:
-  def __init__(self, interface, packeter, inputfile, outputfile):
-    self._interface = interface
-    self._packeter = packeter
-    print "PacketPusher!"
-    if not os.path.exists(inputfile):
-      os.mkfifo(inputfile)
-    if not os.path.exists(outputfile):
-      os.mkfifo(outputfile)
-    print "opening " + outputfile 
-    self._out = open(outputfile, 'w')
-    print "opening " + inputfile
-    self._in = open(inputfile, 'r')
-  def run(self):
-    print "Running"
-    read = [self._in, self._interface.getReadFd()]
-    while read:
-      ir, ur, er = select.select(read, [], read)
-      for r in ir:
-        if r is self._in:
-          #read and send
-          data = self._in.read()
-        elif r is self._interface.getReadFd():
-          #read and send
-          data = self._interface.readraw()
-          self.applicationOut(data)
-
-
-  def interfaceOut(self, out):
-    interface.write(packeter.makePackets(out))
-
-  def applicationOut(self, inf):
-    outputfile.write(Packet.decode(inf))
 
 pp = PacketPusher(Acoust(13000), PacketMaker(), "/home/nathan/inacoust", "/home/nathan/outacoust")
-pp.run()
+
