@@ -74,5 +74,5 @@ class Acoust:
           print "I heard the value - " + "want: {}, heard: {}".format(out, heard)
           return True
 
-with Acoust(20000) as ac:
+with Acoust(15000) as ac:
   ac.write("Hello World, my name is Nathan!")

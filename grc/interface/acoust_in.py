@@ -2,7 +2,7 @@
 ##################################################
 # Gnuradio Python Flow Graph
 # Title: Acoust In
-# Generated: Tue Nov  4 15:05:44 2014
+# Generated: Thu Dec 11 18:44:03 2014
 ##################################################
 
 from gnuradio import audio
@@ -18,7 +18,7 @@ from optparse import OptionParser
 
 class acoust_in(gr.top_block):
 
-    def __init__(self, fdset, carset):
+    def __init__(self, port=8000, payload=32, carrier=20000):
         gr.top_block.__init__(self, "Acoust In")
 
         ##################################################
@@ -29,10 +29,10 @@ class acoust_in(gr.top_block):
         self.sideband_rx = sideband_rx = 1000
         self.sideband = sideband = 1000
         self.samp_rate = samp_rate = 48000
-        self.payload = payload = 4 
+        self.port = port = port
+        self.payload = payload
         self.interpolation = interpolation = 200
-        self.fd = fd = fdset
-        self.carrier = carrier = carset
+        self.carrier = carrier
 
         ##################################################
         # Blocks
@@ -54,8 +54,8 @@ class acoust_in(gr.top_block):
         	verbose=False,
         	log=False,
         )
+        self.blocks_udp_sink_0 = blocks.udp_sink(gr.sizeof_char*1, "", port, payload, True)
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
-        self.blocks_file_descriptor_sink_0 = blocks.file_descriptor_sink(gr.sizeof_char*1, fd)
         self.blks2_packet_decoder_0 = grc_blks2.packet_demod_b(grc_blks2.packet_decoder(
         		access_code="",
         		threshold=-1,
@@ -72,10 +72,9 @@ class acoust_in(gr.top_block):
         self.connect((self.audio_source_0, 0), (self.blocks_float_to_complex_0, 0))
         self.connect((self.rational_resampler_xxx_0_0_0, 0), (self.digital_gfsk_demod_0, 0))
         self.connect((self.digital_gfsk_demod_0, 0), (self.blks2_packet_decoder_0, 0))
-        self.connect((self.blks2_packet_decoder_0, 0), (self.blocks_file_descriptor_sink_0, 0))
+        self.connect((self.blks2_packet_decoder_0, 0), (self.blocks_udp_sink_0, 0))
 
 
-# QT sink close method reimplementation
 
     def get_transistion(self):
         return self.transistion
@@ -109,6 +108,12 @@ class acoust_in(gr.top_block):
         self.samp_rate = samp_rate
         self.freq_xlating_fir_filter_xxx_0_0.set_taps((filter.firdes.low_pass(1, self.samp_rate, self.sideband_rx,100)))
 
+    def get_port(self):
+        return self.port
+
+    def set_port(self, port):
+        self.port = port
+
     def get_payload(self):
         return self.payload
 
@@ -121,12 +126,6 @@ class acoust_in(gr.top_block):
     def set_interpolation(self, interpolation):
         self.interpolation = interpolation
 
-    def get_fd(self):
-        return self.fd
-
-    def set_fd(self, fd):
-        self.fd = fd
-
     def get_carrier(self):
         return self.carrier
 
@@ -137,7 +136,6 @@ class acoust_in(gr.top_block):
 if __name__ == '__main__':
     parser = OptionParser(option_class=eng_option, usage="%prog: [options]")
     (options, args) = parser.parse_args()
-    tb = acoust_in(1, 13000)
+    tb = acoust_in()
     tb.start()
     tb.wait()
-
