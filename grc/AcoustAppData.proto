@@ -1,4 +1,0 @@
-message AcoustAppData {
-	required string address = 1;
-	required string data = 2;
-}

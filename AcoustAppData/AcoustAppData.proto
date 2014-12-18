@@ -1,0 +1,4 @@
+message AcoustAppData {
+	required string address = 10;
+	required bytes data = 11;
+}
