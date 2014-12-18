@@ -1,6 +1,0 @@
-message ChatMessage {
-	required string fromUser = 1;
-	required string content = 2;
-	optional string toUser = 3;
-	optional string time = 4;
-}
