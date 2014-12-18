@@ -1,0 +1,64 @@
+<block>
+  <name>GFSK Modem</name>
+  <key>gfsk_radio</key>
+  <category>gr-mac</category>
+  <import>execfile("/Users/nathan/.grc_gnuradio/gfsk_radio.py")</import>
+  <make>gfsk_radio(
+    rate=$rate,
+    access_code_threshold=$access_code_threshold,
+    samps_per_sym=$samps_per_sym,
+    ampl=$ampl,
+)</make>
+  <callback>set_rate($rate)</callback>
+  <callback>set_access_code_threshold($access_code_threshold)</callback>
+  <callback>set_samps_per_sym($samps_per_sym)</callback>
+  <callback>set_ampl($ampl)</callback>
+  <param>
+    <name>Sample rate</name>
+    <key>rate</key>
+    <value>1e6</value>
+    <type>raw</type>
+  </param>
+  <param>
+    <name>Access code threshold</name>
+    <key>access_code_threshold</key>
+    <value>0</value>
+    <type>raw</type>
+  </param>
+  <param>
+    <name>Samples/symbol</name>
+    <key>samps_per_sym</key>
+    <value>2</value>
+    <type>raw</type>
+  </param>
+  <param>
+    <name>TX BB amp</name>
+    <key>ampl</key>
+    <value>1</value>
+    <type>raw</type>
+  </param>
+  <sink>
+    <name>bb_in</name>
+    <type>complex</type>
+    <vlen>1</vlen>
+  </sink>
+  <sink>
+    <name>msg_in</name>
+    <type>message</type>
+    <optional>False</optional>
+  </sink>
+  <source>
+    <name>out</name>
+    <type>complex</type>
+    <vlen>1</vlen>
+  </source>
+  <source>
+    <name>msg_out</name>
+    <type>message</type>
+    <optional>False</optional>
+  </source>
+  <doc>
+
+/Users/nathan/.grc_gnuradio/gfsk_radio.py</doc>
+  <grc_source>/Users/nathan/Desktop/gfsk_radio.grc</grc_source>
+</block>
