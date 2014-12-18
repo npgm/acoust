@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+import time
+import socket
+from AcoustAppData_pb2 import AcoustAppData
 import threading
 import os, sys
 import acoust_out
@@ -8,15 +11,18 @@ import select
 from uuid import getnode as get_mac
 import base64
 import hashlib
+import datetime
 
-class Packet:
+class Packet(object):
   packetSize = 32
   payloadSize = 22
 
   @staticmethod
   def generatehash(source, dest, size, payload): 
-    md5bytes=hashlib.md5(self.source + self.dest + chr(self.size) + self.payload).digest()
+    md5bytes=hashlib.md5(source + dest + str(unichr(size)) + payload + str(time.time())).digest()
     return base64.urlsafe_b64encode(md5bytes)[:5]
+  def encode(self):
+    return self.source + self.destination + self.hashid + str(unichr(len(self.payload))) + self.payload.ljust(22, '0')
 
   @staticmethod
   def decode(packet):
@@ -27,56 +33,30 @@ class Packet:
     hashid = packet[4:9]
     size = ord(packet[9:10])
     if size > 22:
+      print size
       return None
     payload = packet[10:10+size]
 
     if hashid != Packet.generatehash(source, dest, size, payload):
+      print hashid
       return None
     return Packet(source, dest, payload)
 
+
   def __init__(self, source, destination, payload):
     self.source = source
-    self.dest = destination
+    self.destination = destination
     self.payload = payload
-    self.sethash()
   
   @property 
   def hashid(self):
+    self.sethash()
     return self._hash
   def sethash(self):
-    self._hash = Packet.generatehash(self.source, self.destination, self.size, self.payload)
+    self._hash = Packet.generatehash(self.source, self.destination, len(self.payload), self.payload)
 
-  @property
-  def size(self):
-    return self._size 
-
-  @property 
-  def source(self):
-    return self._address 
-  @source.setter
-  def source(self, s):
-    self._source = a
-    self.sethash()
-
-  @property 
-  def destination(self):
-    return self._destination 
-  @destination.setter
-  def destination(self, d):
-    self._destination = d
-    self.sethash()
-
-  @property 
-  def payload(self):
-    return self._payload
-  @payload.setter
-  def payload(self, p):
-    self._size = min(len(p), 22)
-    self._payload = p.ljust(22, '0')
-    self.sethash()
-
-
-
+  def __unicode__(self):
+    print self.source + ' ' + self.destination  + ' ' + self.payload + ' ' + self.hashid
 
 class PacketMaker:
   def __init__(self, address=None, size=32):
@@ -84,92 +64,79 @@ class PacketMaker:
       self._address = address
     else:
       self._address = base64.b64encode(bytes([get_mac()]))[:2]
-  def makePackets(self, payload, dest='00'):
-    splice = payload
+    self.frameLength = size
+  def makePackets(self, adp):
+    splice = adp.data
     packets = []
-    for i in range(1 + (len(payload)/Packet.payloadSize)):
-      packets += Packet(self._address, dest, splice[:Packet.payloadSize])
-      splice = splice[self._frameLength:]
+    for i in range(1 + (len(splice)/Packet.payloadSize)):
+      packets.append(Packet(self._address, adp.address, splice[:Packet.payloadSize]))
+      print "{}: {}".format(len(packets) - 1, packets[len(packets) - 1].encode())
+      splice = splice[self.frameLength:]
     return packets
-
-
-
-class BlockThread(threading.Thread):
-  def __init__(self, block):
-    threading.Thread.__init__(self)
-    self.tb = block 
-  def run(self):
-    self.tb.start()
-    self.tb.wait()
-    self.tb.stop()
 
 class Acoust:
   def __init__(self, freq, host, port):
+    self.packeter = PacketMaker()
     self._xport = 10000
     self._cport = 11000
     self._frameLength = 32
 
     self._writeApp = (host, port)
     self._writeAcr = (host, self._xport)
-    self._write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     self._appread = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    self._appread.bind(host, port + 1) 
+    self._appread.bind((host, port))
 
     self._acrread = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    self._acrread.bind(host, self._xport+1)
+    self._acrread.bind((host, self._xport+1))
 
   def run(self):
     read = [self._acrread, self._appread]
     while True:
+      print "Selecting on ARC and APP"
       ir, ur, er = select.select(read, [], read, 3.0)
       for r in ir:
         if r is self._acrread:
+          print "Data incoming from ACR"
           data, address = r.recvfrom(32)
           self._sock.sendto(message, self._writeApp)
-          pass
         elif r is self._appread:
-          data, address = r.recvfrom(10240)
-          self._sock.sendto(message, self._writeAcr)
-          pass
+          print "Data incoming from APP"
+          data, address = r.recvfrom(10000)
+          # data represents a protobuf AppDataPacket
+          adp = AcoustAppData()
+          adp.ParseFromString(data)
+          print "received a data packet addressed to {}".format(adp.address)
+          datagram = self.packeter.makePackets(adp)
+          self.write(datagram)
 
   def write(self, out):
-    self.swrite("X" * self._frameLength)
     for packet in out:
-      self.write4(packet)
-    self.swrite("Z" * self._frameLength)
-
-  def swrite(self, out):
-    self._lastwrite = out
-    self._w.write(out)
+      self.write4(packet.encode())
 
   def write4(self, out):
-    #preamble, indicates destination host
-    heard = False 
-    self._w.write(out)
-    heard = self._checkwrite(self._lastwrite)
+    self._sock.sendto(out, self._writeAcr)
+    heard = self._checkwrite(out)
     if not heard:
       return false
-    else:
-      self._lastwrite = out
   
   def _checkwrite(self, out):
-    read = [self._r]
+    read = [self._acrread]
     while read:
       ir, ur, er = select.select(read, [], read, 3.0)
       for r in ir:
-        heard = self._r.read(self._frameLength)
+        heard = r.recvfrom(self._frameLength)
         if heard != out:
           print "want: {}, heard: {}".format(out, heard)
           return False
         else:
-          print "I heard the value - " + "want: {}, heard: {}".format(out, heard)
+          print "I heard the value - want: {}, heard: {}".format(out, heard)
           return True
 
-  def read_raw(self):
-    heard = self._r.read(self._frameLength)
-    return heard
+if __name__ == "__main__":
+  acoust = Acoust(12000, "127.0.0.1", 20000)
+  print "Running Acoust..."
+  acoust.run()
   
-
-pp = PacketPusher(Acoust(13000), PacketMaker(), "/home/nathan/inacoust", "/home/nathan/outacoust")
 
