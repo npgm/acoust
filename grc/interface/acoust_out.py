@@ -2,7 +2,7 @@
 ##################################################
 # Gnuradio Python Flow Graph
 # Title: Acoust Out
-# Generated: Thu Dec 11 18:43:52 2014
+# Generated: Tue Dec 16 00:33:18 2014
 ##################################################
 
 from gnuradio import audio
@@ -18,7 +18,7 @@ from optparse import OptionParser
 
 class acoust_out(gr.top_block):
 
-    def __init__(self, port=8001, payload=32, carrier=20000):
+    def __init__(self):
         gr.top_block.__init__(self, "Acoust Out")
 
         ##################################################
@@ -29,10 +29,10 @@ class acoust_out(gr.top_block):
         self.sideband_rx = sideband_rx = 1000
         self.sideband = sideband = 1000
         self.samp_rate = samp_rate = 48000
-        self.port = port
-        self.payload = payload
+        self.payload = payload = 20
         self.interpolation = interpolation = 200
-        self.carrier = carrier
+        self.fd = fd = 0
+        self.carrier = carrier = 13000
 
         ##################################################
         # Blocks
@@ -51,8 +51,13 @@ class acoust_out(gr.top_block):
         	verbose=False,
         	log=False,
         )
-        self.blocks_udp_source_0 = blocks.udp_source(gr.sizeof_char*1, "127.0.0.1", port, payload, True)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
+        self.blks2_tcp_source_0 = grc_blks2.tcp_source(
+        	itemsize=gr.sizeof_char*1,
+        	addr="127.0.0.1",
+        	port=9000,
+        	server=True,
+        )
         self.blks2_packet_encoder_0 = grc_blks2.packet_mod_b(grc_blks2.packet_encoder(
         		samples_per_symbol=sps,
         		bits_per_symbol=1,
@@ -68,11 +73,11 @@ class acoust_out(gr.top_block):
         # Connections
         ##################################################
         self.connect((self.blocks_complex_to_real_0, 0), (self.audio_sink_0, 0))
-        self.connect((self.rational_resampler_xxx_0, 0), (self.freq_xlating_fir_filter_xxx_0, 0))
-        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.blocks_complex_to_real_0, 0))
-        self.connect((self.blks2_packet_encoder_0, 0), (self.digital_gfsk_mod_0, 0))
         self.connect((self.digital_gfsk_mod_0, 0), (self.rational_resampler_xxx_0, 0))
-        self.connect((self.blocks_udp_source_0, 0), (self.blks2_packet_encoder_0, 0))
+        self.connect((self.blks2_packet_encoder_0, 0), (self.digital_gfsk_mod_0, 0))
+        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.blocks_complex_to_real_0, 0))
+        self.connect((self.rational_resampler_xxx_0, 0), (self.freq_xlating_fir_filter_xxx_0, 0))
+        self.connect((self.blks2_tcp_source_0, 0), (self.blks2_packet_encoder_0, 0))
 
 
 
@@ -109,12 +114,6 @@ class acoust_out(gr.top_block):
         self.samp_rate = samp_rate
         self.freq_xlating_fir_filter_xxx_0.set_taps((firdes.band_pass (0.50,self.samp_rate,self.carrier-self.sideband,self.carrier+self.sideband,self.transistion)))
 
-    def get_port(self):
-        return self.port
-
-    def set_port(self, port):
-        self.port = port
-
     def get_payload(self):
         return self.payload
 
@@ -126,6 +125,12 @@ class acoust_out(gr.top_block):
 
     def set_interpolation(self, interpolation):
         self.interpolation = interpolation
+
+    def get_fd(self):
+        return self.fd
+
+    def set_fd(self, fd):
+        self.fd = fd
 
     def get_carrier(self):
         return self.carrier
