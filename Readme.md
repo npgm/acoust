@@ -1,4 +1,4 @@
-#Acoust
+#[Acoust](https://npgm.github.io/acoust/)
 
 A network interface that uses high frequency sound waves to communicate over
 the air.
